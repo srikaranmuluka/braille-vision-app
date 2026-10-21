@@ -1051,17 +1051,27 @@
         }
       });
 
-      // 1. Check for "ON" relationships: (e.g. apple on table, bottle on desk)
+      // 1. Check for "ON" relationships: (e.g. laptop on bed, apple on table, bottle on desk)
       for (const p of primaryObjs) {
         const [px, py, pw, ph] = p.bbox;
         const pBottom = py + ph;
         const pCenterX = px + pw / 2;
+        const pArea = pw * ph;
 
         for (const s of surfaceObjs) {
           const [sx, sy, sw, sh] = s.bbox;
-          if (pCenterX >= sx && pCenterX <= sx + sw &&
-              pBottom >= sy - (frameHeight * 0.1) && pBottom <= sy + (sh * 0.45) + 30) {
-            return `${cleanName(p.class)} on ${cleanName(s.class)}`;
+          const sArea = sw * sh;
+
+          // Supporting surface must be larger than the supported object
+          if (sArea >= pArea * 1.1) {
+            // Check A: Object rests inside the surface span (e.g. laptop on bed, phone on couch, book on desk)
+            const isInside = (pCenterX >= sx && pCenterX <= sx + sw && pBottom >= sy && pBottom <= sy + sh + 20);
+            // Check B: Object rests on the upper rim/tabletop (e.g. bottle on table)
+            const isOnRim = (pCenterX >= sx - 30 && pCenterX <= sx + sw + 30 && pBottom >= sy - 60 && pBottom <= sy + (sh * 0.5) + 30);
+
+            if (isInside || isOnRim) {
+              return `${cleanName(p.class)} on ${cleanName(s.class)}`;
+            }
           }
         }
       }
