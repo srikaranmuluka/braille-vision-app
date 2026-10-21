@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Braille Vision" />
+  
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  
+  <title>Braille Vision AI - Smartphone Assistive Perception</title>
+
+  <!-- PWA Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+
+  <!-- External AI & MQTT Libraries -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card-bg: #131d33;
+      --card-border: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-cyan: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-btn: #2563eb;
+      --accent-btn-hover: #1d4ed8;
+      --dot-inactive: #1e293b;
+      --dot-inactive-text: #64748b;
+      --dot-active: #38bdf8;
+      --dot-active-text: #0f172a;
+      --pod-bg: #0f172a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 14px 40px 14px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* PWA Install Banner */
+    .install-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #1e3a8a, #0284c7);
+      border-radius: 14px;
+      padding: 10px 14px;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+    }
+
+    .install-banner p {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .btn-install {
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand img {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    .brand-titles h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+    }
+
+    .brand-titles p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .status-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--warning);
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected { background: var(--success); }
+    .status-dot.disconnected { background: var(--danger); }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Camera Viewport */
+    .viewport-box {
+      position: relative;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #020617;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #1e293b;
+    }
+
+    #cameraVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    #previewCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+
+    .viewport-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      gap: 8px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .viewport-placeholder svg {
+      width: 48px;
+      height: 48px;
+      stroke: #475569;
+    }
+
+    .viewport-placeholder p {
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 17, 32, 0.82);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Action Buttons */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .btn-camera {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn-camera:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:active {
+      background: #334155;
+    }
+
+    /* Assistive Scene Description Banner */
+    .caption-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 1px solid #334155;
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .caption-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .caption-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+
+    .caption-tts-btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      padding: 4px 10px;
+      color: var(--accent-cyan);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .caption-tts-btn:active {
+      background: rgba(56, 189, 248, 0.3);
+    }
+
+    .caption-text {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      line-height: 1.25;
+      color: #38bdf8;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+    }
+
+    .caption-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px 9px;
+      border-radius: 6px;
+      color: #cbd5e1;
+    }
+
+    /* Braille Display Cell (Grade 1) */
+    .braille-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 0;
+    }
+
+    .braille-cell {
+      display: grid;
+      grid-template-columns: repeat(2, 54px);
+      grid-template-rows: repeat(3, 54px);
+      gap: 16px 26px;
+      background: #0f172a;
+      padding: 22px 30px;
+      border-radius: 24px;
+      border: 1px solid #1e293b;
+    }
+
+    .dot {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--dot-inactive);
+      color: var(--dot-inactive-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dot.active {
+      background: var(--dot-active);
+      color: var(--dot-active-text);
+      transform: scale(1.1);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Cadence & Letter Info */
+    .playback-info {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .playback-bar {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .playback-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-cyan);
+      transition: width 0.1s linear;
+    }
+
+    .playback-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .char-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--accent-cyan);
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 1rem;
+      border-radius: 7px;
+    }
+
+    /* Transmit & Hardware Trigger */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 4px;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      background: #334155;
+      border-radius: 11px;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s;
+    }
+
+    input[type="checkbox"]:checked + .toggle-switch {
+      background: var(--accent-cyan);
+    }
+
+    input[type="checkbox"]:checked + .toggle-switch::after {
+      transform: translateX(16px);
+      background: #0f172a;
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-send:active {
+      transform: scale(0.98);
+    }
+
+    /* Custom Text Input */
+    .custom-input-box {
+      display: flex;
+      gap: 8px;
+    }
+
+    .custom-input {
+      flex: 1;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 0.86rem;
+      background: #0f172a;
+      color: #ffffff;
+      outline: none;
+    }
+
+    .custom-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Diagnostic Console */
+    .console-box {
+      background: #020617;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      border-radius: 12px;
+      padding: 10px 12px;
+      max-height: 110px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border: 1px solid #1e293b;
+    }
+
+    .console-entry { line-height: 1.35; }
+    .console-entry.success { color: #4ade80; }
+    .console-entry.warn { color: #facc15; }
+    .console-entry.info { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- PWA Install Banner -->
+    <div class="install-banner" id="installBanner">
+      <p>📲 Install Braille Vision to Home Screen</p>
+      <button class="btn-install" onclick="installApp()">Install App</button>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <img src="icon-192.png" alt="Braille Vision Logo" />
+        <div class="brand-titles">
+          <h1>Braille Vision</h1>
+          <p>Camera-to-Tactile Perception System</p>
+        </div>
+      </div>
+
+      <div class="status-badges">
+        <div class="status-badge">
+          <span class="status-dot" id="mqttDot"></span>
+          <span id="mqttStatusText">MQTT</span>
+        </div>
+        <div class="status-badge">
+          <span class="status-dot" id="aiDot"></span>
+          <span id="aiStatusText">AI Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hidden Native File Inputs -->
+    <!-- Native Camera Capture: opens phone's high-res native camera app -->
+    <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;" />
+    <!-- Gallery File Picker -->
+    <input type="file" id="galleryInput" accept="image/*" style="display:none;" />
+
+    <!-- Camera Viewport / Image Preview -->
+    <div class="card" style="padding: 12px;">
+      <div class="viewport-box" id="viewportBox">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <canvas id="previewCanvas"></canvas>
+
+        <div class="viewport-placeholder" id="viewportPlaceholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <p>Tap below to scan with your phone camera</p>
+        </div>
+
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <span id="loadingText" style="font-size: 0.85rem; font-weight: 600;">Analyzing scene with Deep Learning...</span>
+        </div>
+      </div>
+
+      <!-- Main Action Buttons -->
+      <div class="action-grid">
+        <button class="btn-camera" id="btnMainScan" onclick="triggerNativeCamera()">
+          <span style="font-size: 1.3rem;">📸</span>
+          <span>Scan with Phone Camera</span>
+        </button>
+
+        <div class="btn-row">
+          <button class="btn-secondary" id="btnLiveToggle" onclick="toggleLiveViewfinder()">
+            <span>📹</span> <span id="liveBtnText">Live Viewfinder</span>
+          </button>
+          <button class="btn-secondary" onclick="triggerGallery()">
+            <span>🖼️</span> <span>Gallery</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assistive Scene Caption Banner -->
+    <div class="caption-card">
+      <div class="caption-header">
+        <span class="caption-tag">Assistive Perception Output</span>
+        <button class="caption-tts-btn" onclick="speakCurrentCaption()">
+          <span>🔊</span> <span>Speak</span>
+        </button>
+      </div>
+
+      <div class="caption-text" id="captionOutput">
+        READY TO SCAN
+      </div>
+
+      <div class="caption-chips" id="chipsBox">
+        <span class="chip">Point camera at objects</span>
+      </div>
+    </div>
+
+    <!-- Single-Cell Tactile Braille Actuation Preview -->
+    <div class="card">
+      <div class="card-title">
+        <span>Single-Cell Tactile Matrix</span>
+        <span style="font-size: 0.72rem; color: var(--accent-cyan);">1.5s ON / 0.5s GAP</span>
+      </div>
+
+      <div class="braille-container">
+        <div class="braille-cell">
+          <div class="dot" id="dot1">1</div>
+          <div class="dot" id="dot4">4</div>
+          <div class="dot" id="dot2">2</div>
+          <div class="dot" id="dot5">5</div>
+          <div class="dot" id="dot3">3</div>
+          <div class="dot" id="dot6">6</div>
+        </div>
+
+        <div class="playback-info">
+          <div class="playback-bar">
+            <div class="playback-fill" id="playbackFill"></div>
+          </div>
+          <div class="playback-meta">
+            <span id="playbackStatus">Standby</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>Char:</span>
+              <span class="char-badge" id="charBadge">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transmission Controls -->
+      <div class="controls-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="autoSendToggle" checked style="display:none;" />
+          <span class="toggle-switch"></span>
+          <span>Auto-Send to Servos</span>
+        </label>
+
+        <button class="btn-send" onclick="sendCaptionToHardware()">
+          <span>⚡ Send to Braille</span>
+        </button>
+      </div>
+
+      <!-- Custom Input (Optional) -->
+      <div class="custom-input-box">
+        <input type="text" class="custom-input" id="customInput" placeholder="Or type custom word..." />
+        <button class="btn-secondary" style="flex: initial; padding: 11px 18px;" onclick="sendCustomText()">
+          Send
+        </button>
+      </div>
+    </div>
+
+    <!-- Diagnostic Console -->
+    <div class="card" style="padding: 12px;">
+      <div class="card-title">
+        <span>Live System Log</span>
+        <button style="background: none; border: none; font-size: 0.72rem; color: var(--text-muted); cursor: pointer;" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="console-box" id="consoleBox">
+        <div class="console-entry info">[System] Braille Vision App initialized.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* =====================================================================
+     * PWA Install Prompt
+     * ===================================================================== */
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBanner').style.display = 'flex';
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            log("PWA Installed successfully to Home Screen!", "success");
+          }
+          deferredPrompt = null;
+          document.getElementById('installBanner').style.display = 'none';
+        });
+      }
+    }
+
+    /* =====================================================================
+     * Grade 1 Standard English Braille Dot Matrix (Dots 1 to 6)
+     * ===================================================================== */
+    const BRAILLE_MAP = {
+      'a': [1, 0, 0, 0, 0, 0],
+      'b': [1, 1, 0, 0, 0, 0],
+      'c': [1, 0, 0, 1, 0, 0],
+      'd': [1, 0, 0, 1, 1, 0],
+      'e': [1, 0, 0, 0, 1, 0],
+      'f': [1, 1, 0, 1, 0, 0],
+      'g': [1, 1, 0, 1, 1, 0],
+      'h': [1, 1, 0, 0, 1, 0],
+      'i': [0, 1, 0, 1, 0, 0],
+      'j': [0, 1, 0, 1, 1, 0],
+      'k': [1, 0, 1, 0, 0, 0],
+      'l': [1, 1, 1, 0, 0, 0],
+      'm': [1, 0, 1, 1, 0, 0],
+      'n': [1, 0, 1, 1, 1, 0],
+      'o': [1, 0, 1, 0, 1, 0],
+      'p': [1, 1, 1, 1, 0, 0],
+      'q': [1, 1, 1, 1, 1, 0],
+      'r': [1, 1, 1, 0, 1, 0],
+      's': [0, 1, 1, 1, 0, 0],
+      't': [0, 1, 1, 1, 1, 0],
+      'u': [1, 0, 1, 0, 0, 1],
+      'v': [1, 1, 1, 0, 0, 1],
+      'w': [0, 1, 0, 1, 1, 1],
+      'x': [1, 0, 1, 1, 0, 1],
+      'y': [1, 0, 1, 1, 1, 1],
+      'z': [1, 0, 1, 0, 1, 1],
+      ' ': [0, 0, 0, 0, 0, 0]
+    };
+
+    /* =====================================================================
+     * MQTT Configuration (EMQX Cloud Broker)
+     * ===================================================================== */
+    const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+    const MQTT_TOPIC = "braille/display/input";
+    const CLIENT_ID  = "BrailleVisionApp_" + Math.random().toString(16).substring(2, 9);
+
+    let mqttClient = null;
+    let isMqttConnected = false;
+
+    // Elements
+    const mqttDot = document.getElementById("mqttDot");
+    const mqttStatusText = document.getElementById("mqttStatusText");
+    const aiDot = document.getElementById("aiDot");
+    const aiStatusText = document.getElementById("aiStatusText");
+    const viewportPlaceholder = document.getElementById("viewportPlaceholder");
+    const cameraVideo = document.getElementById("cameraVideo");
+    const previewCanvas = document.getElementById("previewCanvas");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const loadingText = document.getElementById("loadingText");
+    const captionOutput = document.getElementById("captionOutput");
+    const chipsBox = document.getElementById("chipsBox");
+    const autoSendToggle = document.getElementById("autoSendToggle");
+    const playbackFill = document.getElementById("playbackFill");
+    const playbackStatus = document.getElementById("playbackStatus");
+    const charBadge = document.getElementById("charBadge");
+    const consoleBox = document.getElementById("consoleBox");
+
+    let cocoModel = null;
+    let isCocoLoading = false;
+    let currentCaption = "ready to scan";
+    let playbackTimer = null;
+    let liveStream = null;
+
+    // Console Logging
+    function log(msg, type = "normal") {
+      const entry = document.createElement("div");
+      entry.className = "console-entry " + type;
+      const time = new Date().toLocaleTimeString();
+      entry.innerText = `[${time}] ${msg}`;
+      consoleBox.prepend(entry);
+    }
+
+    function clearLog() {
+      consoleBox.innerHTML = "";
+    }
+
+    // Connect MQTT
+    function initMQTT() {
+      log("Connecting to EMQX Broker (wss://broker.emqx.io:8084/mqtt)...", "info");
+      try {
+        mqttClient = mqtt.connect(BROKER_URL, {
+          clientId: CLIENT_ID,
+          clean: true,
+          connectTimeout: 5000,
+          reconnectPeriod: 3000
+        });
+
+        mqttClient.on("connect", () => {
+          isMqttConnected = true;
+          mqttDot.className = "status-dot connected";
+          mqttStatusText.innerText = "MQTT Online";
+          log("MQTT connected to broker.emqx.io (Ready)", "success");
+        });
+
+        mqttClient.on("offline", () => {
+          isMqttConnected = false;
+          mqttDot.className = "status-dot disconnected";
+          mqttStatusText.innerText = "MQTT Offline";
+          log("MQTT offline. Auto-reconnecting...", "warn");
+        });
+
+        mqttClient.on("error", (err) => {
+          log("MQTT Error: " + err.message, "warn");
+        });
+      } catch (err) {
+        log("MQTT Connection exception: " + err.message, "warn");
+      }
+    }
+
+    // Load TensorFlow.js COCO-SSD
+    async function loadCocoSSD() {
+      if (cocoModel) return;
+      isCocoLoading = true;
+      aiDot.className = "status-dot";
+      aiStatusText.innerText = "Loading AI...";
+      log("Loading on-device MobileNet COCO-SSD Deep Learning model...", "info");
+
+      try {
+        cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+        isCocoLoading = false;
+        aiDot.className = "status-dot connected";
+        aiStatusText.innerText = "AI Ready";
+        log("MobileNet COCO-SSD Loaded (Zero latency, on-device)", "success");
+      } catch (err) {
+        log("Failed to load COCO-SSD: " + err.message, "warn");
+        aiDot.className = "status-dot disconnected";
+        aiStatusText.innerText = "AI Load Failed";
+      }
+    }
+
+    /* =====================================================================
+     * Camera Handling
+     * ===================================================================== */
+    function triggerNativeCamera() {
+      stopLiveStream();
+      document.getElementById("nativeCameraInput").click();
+    }
+
+    function triggerGallery() {
+      stopLiveStream();
+      document.getElementById("galleryInput").click();
+    }
+
+    document.getElementById("nativeCameraInput").addEventListener("change", handleFileInput);
+    document.getElementById("galleryInput").addEventListener("change", handleFileInput);
+
+    function handleFileInput(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      log(`Image captured: ${file.name} (${Math.round(file.size / 1024)} KB)`, "info");
+      showLoading(true, "Processing image...");
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          displayAndAnalyzeImage(img);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Live Viewfinder Toggle
+    async function toggleLiveViewfinder() {
+      if (liveStream) {
+        stopLiveStream();
+        log("Live viewfinder closed.", "info");
+        return;
+      }
+
+      try {
+        log("Requesting rear camera stream...", "info");
+        liveStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        cameraVideo.srcObject = liveStream;
+        cameraVideo.style.display = "block";
+        previewCanvas.style.display = "none";
+        viewportPlaceholder.style.display = "none";
+        document.getElementById("liveBtnText").innerText = "Capture Viewfinder";
+        log("Live rear viewfinder active. Tap 'Capture Viewfinder' to scan.", "success");
+      } catch (err) {
+        log("Camera access error: " + err.message, "warn");
+        alert("Camera error: " + err.message);
+      }
+    }
+
+    function stopLiveStream() {
+      if (liveStream) {
+        liveStream.getTracks().forEach(track => track.stop());
+        liveStream = null;
+        cameraVideo.style.display = "none";
+        document.getElementById("liveBtnText").innerText = "Live Viewfinder";
+      }
+    }
+
+    // Capture from live video if active
+    document.getElementById("btnLiveToggle").addEventListener("click", () => {
+      if (cameraVideo.style.display === "block" && cameraVideo.videoWidth > 0) {
+        const canvas = document.createElement("canvas");
+        canvas.width = cameraVideo.videoWidth;
+        canvas.height = cameraVideo.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+
+        stopLiveStream();
+        const img = new Image();
+        img.onload = () => displayAndAnalyzeImage(img);
+        img.src = canvas.toDataURL("image/jpeg", 0.9);
+      }
+    });
+
+    function showLoading(show, text = "Analyzing...") {
+      loadingOverlay.style.display = show ? "flex" : "none";
+      loadingText.innerText = text;
+    }
+
+    /* =====================================================================
+     * Spatial Reasoning Knowledge Engine (BECE309L Module 3 + 7)
+     * ===================================================================== */
+    const SURFACES = new Set(["dining table", "table", "desk", "chair", "couch", "bed", "bench"]);
+    const NAME_MAP = {
+      "dining table": "table",
+      "cell phone": "phone",
+      "potted plant": "plant",
+      "wine glass": "glass",
+      "sports ball": "ball"
+    };
+
+    function cleanName(n) {
+      return NAME_MAP[n] || n;
+    }
+
+    function analyzeSpatialRelationships(detections, frameWidth, frameHeight) {
+      if (!detections || detections.length === 0) {
+        return "nothing ahead";
+      }
+
+      const primaryObjs = [];
+      const surfaceObjs = [];
+
+      detections.forEach(det => {
+        if (SURFACES.has(det.class.toLowerCase())) {
+          surfaceObjs.push(det);
+        } else {
+          primaryObjs.push(det);
+        }
+      });
+
+      // 1. Check for "ON" relationships: (e.g. apple on table, bottle on desk)
+      for (const p of primaryObjs) {
+        const [px, py, pw, ph] = p.bbox;
+        const pBottom = py + ph;
+        const pCenterX = px + pw / 2;
+
+        for (const s of surfaceObjs) {
+          const [sx, sy, sw, sh] = s.bbox;
+          if (pCenterX >= sx && pCenterX <= sx + sw &&
+              pBottom >= sy - (frameHeight * 0.1) && pBottom <= sy + (sh * 0.45) + 30) {
+            return `${cleanName(p.class)} on ${cleanName(s.class)}`;
+          }
+        }
+      }
+
+      // 2. Check for "NEAR" / "AND" relationships: (e.g. cup near laptop)
+      if (primaryObjs.length >= 2) {
+        primaryObjs.sort((a, b) => b.score - a.score);
+        const obj1 = primaryObjs[0];
+        const obj2 = primaryObjs[1];
+
+        const c1x = obj1.bbox[0] + obj1.bbox[2] / 2;
+        const c2x = obj2.bbox[0] + obj2.bbox[2] / 2;
+        const dist = Math.abs(c1x - c2x);
+
+        if (dist < frameWidth * 0.45) {
+          return `${cleanName(obj1.class)} near ${cleanName(obj2.class)}`;
+        } else {
+          return `${cleanName(obj1.class)} and ${cleanName(obj2.class)}`;
+        }
+      }
+
+      // 3. Directional placement: (e.g. person ahead, bottle on left, chair on right)
+      const mainObj = primaryObjs.length > 0 ? primaryObjs[0] : surfaceObjs[0];
+      const name = cleanName(mainObj.class);
+      const centerX = mainObj.bbox[0] + mainObj.bbox[2] / 2;
+
+      if (centerX < frameWidth * 0.35) {
+        return `${name} on left`;
+      } else if (centerX > frameWidth * 0.65) {
+        return `${name} on right`;
+      } else {
+        return `${name} ahead`;
+      }
+    }
+
+    /* =====================================================================
+     * Image Inference Pipeline
+     * ===================================================================== */
+    async function displayAndAnalyzeImage(img) {
+      showLoading(true, "Running Deep Learning Inference...");
+      viewportPlaceholder.style.display = "none";
+      cameraVideo.style.display = "none";
+      previewCanvas.style.display = "block";
+
+      const ctx = previewCanvas.getContext("2d");
+      previewCanvas.width = img.width;
+      previewCanvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      const startTime = performance.now();
+
+      try {
+        if (!cocoModel) await loadCocoSSD();
+
+        const predictions = await cocoModel.detect(img);
+        const elapsed = Math.round(performance.now() - startTime);
+
+        drawBoundingBoxes(ctx, predictions);
+        const sentence = analyzeSpatialRelationships(predictions, img.width, img.height);
+        
+        showLoading(false);
+        updatePerceptionResult(sentence, predictions, elapsed);
+      } catch (err) {
+        showLoading(false);
+        log("Inference failed: " + err.message, "warn");
+        alert("Inference error: " + err.message);
+      }
+    }
+
+    function drawBoundingBoxes(ctx, detections) {
+      if (!detections) return;
+      detections.forEach(det => {
+        const [x, y, w, h] = det.bbox;
+        const label = `${cleanName(det.class)} ${Math.round((det.score || 0) * 100)}%`;
+
+        // Bounding box outline
+        ctx.lineWidth = Math.max(3, Math.round(ctx.canvas.width / 250));
+        ctx.strokeStyle = "#22c55e";
+        ctx.strokeRect(x, y, w, h);
+
+        // Label banner
+        ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+        const fontSize = Math.max(14, Math.round(ctx.canvas.width / 35));
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillRect(x, Math.max(0, y - fontSize - 8), textWidth + 12, fontSize + 8);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(label, x + 6, Math.max(fontSize, y - 4));
+      });
+    }
+
+    function updatePerceptionResult(sentence, detections, elapsedMs) {
+      currentCaption = sentence.toLowerCase().trim();
+      captionOutput.innerText = currentCaption.toUpperCase();
+
+      // Update chips
+      chipsBox.innerHTML = "";
+      if (detections && detections.length > 0) {
+        detections.forEach(d => {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.innerText = `${cleanName(d.class)} (${Math.round((d.score || 0) * 100)}%)`;
+          chipsBox.appendChild(chip);
+        });
+      } else {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.innerText = "No objects identified";
+        chipsBox.appendChild(chip);
+      }
+
+      log(`[AI] Scene: "${currentCaption}" (${elapsedMs}ms on phone)`, "success");
+
+      // Haptic vibration feedback
+      if (navigator.vibrate) {
+        navigator.vibrate([80, 40, 80]);
+      }
+
+      // Auto-speak caption
+      speakCurrentCaption();
+
+      // If Auto-Send is enabled, immediately transmit to ESP32
+      if (autoSendToggle.checked) {
+        sendCaptionToHardware();
+      } else {
+        startBrailleAnimation(currentCaption);
+      }
+    }
+
+    /* =====================================================================
+     * Speech Synthesis (Text-to-Speech Accessibility)
+     * ===================================================================== */
+    function speakCurrentCaption() {
+      if ('speechSynthesis' in window && currentCaption) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(currentCaption);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    /* =====================================================================
+     * Tactile Braille Actuation & Animation
+     * ===================================================================== */
+    function renderDots(dots) {
+      for (let i = 1; i <= 6; i++) {
+        const dotElem = document.getElementById("dot" + i);
+        if (dots && dots[i - 1] === 1) {
+          dotElem.classList.add("active");
+        } else {
+          dotElem.classList.remove("active");
+        }
+      }
+    }
+
+    function startBrailleAnimation(text) {
+      if (playbackTimer) {
+        clearTimeout(playbackTimer);
+        playbackTimer = null;
+      }
+
+      const chars = text.toLowerCase().split("");
+      let index = 0;
+
+      const DISPLAY_DURATION = 1500; // 1.5s letter on
+      const GAP_DURATION     = 500;  // 0.5s off gap
+
+      function step() {
+        if (index >= chars.length) {
+          renderDots([0, 0, 0, 0, 0, 0]);
+          charBadge.innerText = "-";
+          playbackStatus.innerText = "Complete";
+          playbackFill.style.width = "100%";
+          setTimeout(() => {
+            playbackFill.style.width = "0%";
+            playbackStatus.innerText = "Standby";
+          }, 800);
+          return;
+        }
+
+        const ch = chars[index];
+        const dots = BRAILLE_MAP[ch] || [0, 0, 0, 0, 0, 0];
+
+        // 1. LETTER ON
+        renderDots(dots);
+        charBadge.innerText = ch === ' ' ? '␣' : ch.toUpperCase();
+        playbackStatus.innerText = `Actuating '${charBadge.innerText}' (1.5s)`;
+        playbackFill.style.transition = `width ${DISPLAY_DURATION}ms linear`;
+        playbackFill.style.width = `${((index + 1) / chars.length) * 100}%`;
+
+        playbackTimer = setTimeout(() => {
+          // 2. GAP OFF
+          renderDots([0, 0, 0, 0, 0, 0]);
+          playbackStatus.innerText = "Rest Gap (0.5s)";
+
+          playbackTimer = setTimeout(() => {
+            index++;
+            step();
+          }, GAP_DURATION);
+        }, DISPLAY_DURATION);
+      }
+
+      playbackFill.style.transition = "none";
+      playbackFill.style.width = "0%";
+      step();
+    }
+
+    /* =====================================================================
+     * Transmit to Hardware (MQTT ESP32)
+     * ===================================================================== */
+    function sendCaptionToHardware() {
+      if (!currentCaption || currentCaption === "ready to scan") {
+        alert("Please take a photo first!");
+        return;
+      }
+
+      sendBrailleText(currentCaption);
+    }
+
+    function sendCustomText() {
+      const text = document.getElementById("customInput").value.trim();
+      if (!text) return;
+      currentCaption = text.toLowerCase();
+      captionOutput.innerText = currentCaption.toUpperCase();
+      sendBrailleText(currentCaption);
+    }
+
+    function sendBrailleText(text) {
+      text = text.toLowerCase().trim();
+      log(`>>> Transmitting to Braille Display: "${text}"`, "info");
+
+      // Publish via MQTT
+      if (mqttClient && isMqttConnected) {
+        mqttClient.publish(MQTT_TOPIC, text, { qos: 0 }, (err) => {
+          if (err) {
+            log("MQTT Publish error: " + err.message, "warn");
+          } else {
+            log(`[MQTT] Published to '${MQTT_TOPIC}' -> ESP32 servos triggered!`, "success");
+          }
+        });
+      } else {
+        log("MQTT not connected to broker. Check Wi-Fi / broker.emqx.io", "warn");
+      }
+
+      // Run visual dot animation
+      startBrailleAnimation(text);
+    }
+
+    // Initialize on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      initMQTT();
+      loadCocoSSD();
+    });
+  </script>
+</body>
+</html>
