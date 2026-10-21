@@ -912,11 +912,11 @@
       log("Loading on-device MobileNet COCO-SSD Deep Learning model...", "info");
 
       try {
-        cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+        cocoModel = await cocoSsd.load({ base: 'mobilenet_v2' });
         isCocoLoading = false;
         aiDot.className = "status-dot connected";
-        aiStatusText.innerText = "AI Ready";
-        log("MobileNet COCO-SSD Loaded (Zero latency, on-device)", "success");
+        aiStatusText.innerText = "AI Ready (High Acc)";
+        log("Full MobileNet-v2 High-Accuracy Deep Learning model loaded.", "success");
       } catch (err) {
         log("Failed to load COCO-SSD: " + err.message, "warn");
         aiDot.className = "status-dot disconnected";
@@ -1107,20 +1107,36 @@
       previewCanvas.style.display = "block";
 
       const ctx = previewCanvas.getContext("2d");
-      previewCanvas.width = img.width;
-      previewCanvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+      
+      // Scale high-res phone camera images to optimal CNN dimensions (max 1024px)
+      let targetW = img.width;
+      let targetH = img.height;
+      const MAX_DIM = 1024;
+      if (targetW > MAX_DIM || targetH > MAX_DIM) {
+        if (targetW > targetH) {
+          targetH = Math.round((targetH * MAX_DIM) / targetW);
+          targetW = MAX_DIM;
+        } else {
+          targetW = Math.round((targetW * MAX_DIM) / targetH);
+          targetH = MAX_DIM;
+        }
+      }
+
+      previewCanvas.width = targetW;
+      previewCanvas.height = targetH;
+      ctx.drawImage(img, 0, 0, targetW, targetH);
 
       const startTime = performance.now();
 
       try {
         if (!cocoModel) await loadCocoSSD();
 
-        const predictions = await cocoModel.detect(img);
+        // Detect with tuned threshold (0.30) and 20 max boxes on resampled canvas
+        const predictions = await cocoModel.detect(previewCanvas, 20, 0.30);
         const elapsed = Math.round(performance.now() - startTime);
 
         drawBoundingBoxes(ctx, predictions);
-        const sentence = analyzeSpatialRelationships(predictions, img.width, img.height);
+        const sentence = analyzeSpatialRelationships(predictions, targetW, targetH);
         
         showLoading(false);
         updatePerceptionResult(sentence, predictions, elapsed);
