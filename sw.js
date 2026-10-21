@@ -1,37 +1,26 @@
-// Service Worker for Braille Vision App
-const CACHE_NAME = 'braille-vision-app-v1';
-
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
+// Service Worker for Braille Vision App (v2 - Silent No-Audio)
+const CACHE_NAME = 'braille-vision-app-v2';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch(() => {});
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      );
+      return Promise.all(keys.map((k) => caches.delete(k)));
     })
   );
-  clients.claim();
+  return self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network first with cache fallback
+  // Always fetch fresh network first
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(e.request)
+      .then((response) => {
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
