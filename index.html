@@ -596,7 +596,10 @@
 
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
-      <p>ðŸ“² Install Braille Vision to Home Screen</p>
+      <p style="display:flex; align-items:center; gap:6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Install Braille Vision to Home Screen</span>
+      </p>
       <button class="btn-install" onclick="installApp()">Install App</button>
     </div>
 
@@ -651,16 +654,28 @@
       <!-- Main Action Buttons (Clean Black Minimalist) -->
       <div class="action-grid">
         <button class="btn-camera" id="btnMainScan" onclick="triggerNativeCamera()">
-          <span style="font-size: 1.25rem;">ðŸ“¸</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
           <span>Take Photo with Camera</span>
         </button>
 
         <div class="btn-row">
           <button class="btn-secondary" id="btnLiveToggle" onclick="toggleLiveViewfinder()">
-            <span>ðŸ“¹</span> <span id="liveBtnText">Live Viewfinder</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="23 7 16 12 23 7"/>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            <span id="liveBtnText">Live Viewfinder</span>
           </button>
           <button class="btn-secondary" onclick="triggerGallery()">
-            <span>ðŸ–¼ï¸</span> <span>Gallery</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Gallery</span>
           </button>
         </div>
       </div>
@@ -671,7 +686,11 @@
       <div class="caption-header">
         <span class="caption-tag">Assistive Perception Output</span>
         <button class="caption-tts-btn" onclick="speakCurrentCaption()">
-          <span>ðŸ”Š</span> <span>Speak</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          <span>Speak</span>
         </button>
       </div>
 
@@ -724,7 +743,11 @@
         </label>
 
         <button class="btn-send" onclick="sendCaptionToHardware()">
-          <span>âš¡ Send to Braille</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <span>Send to Braille</span>
         </button>
       </div>
 
@@ -1233,7 +1256,7 @@
 
         // 1. LETTER ON
         renderDots(dots);
-        charBadge.innerText = ch === ' ' ? 'â£' : ch.toUpperCase();
+        charBadge.innerText = ch === ' ' ? '_' : ch.toUpperCase();
         playbackStatus.innerText = `Actuating '${charBadge.innerText}' (1.5s)`;
         playbackFill.style.transition = `width ${DISPLAY_DURATION}ms linear`;
         playbackFill.style.width = `${((index + 1) / chars.length) * 100}%`;
