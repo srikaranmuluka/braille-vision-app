@@ -685,13 +685,6 @@
     <div class="caption-card">
       <div class="caption-header">
         <span class="caption-tag">Assistive Perception Output</span>
-        <button class="caption-tts-btn" onclick="speakCurrentCaption()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          </svg>
-          <span>Speak</span>
-        </button>
       </div>
 
       <div class="caption-text" id="captionOutput">
@@ -1188,27 +1181,11 @@
         navigator.vibrate([80, 40, 80]);
       }
 
-      // Auto-speak caption
-      speakCurrentCaption();
-
       // If Auto-Send is enabled, immediately transmit to ESP32
       if (autoSendToggle.checked) {
         sendCaptionToHardware();
       } else {
         startBrailleAnimation(currentCaption);
-      }
-    }
-
-    /* =====================================================================
-     * Speech Synthesis (Text-to-Speech Accessibility)
-     * ===================================================================== */
-    function speakCurrentCaption() {
-      if ('speechSynthesis' in window && currentCaption) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(currentCaption);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.05;
-        window.speechSynthesis.speak(utterance);
       }
     }
 
