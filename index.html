@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#f8fafc" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Braille Vision" />
   
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" type="image/png" href="icon-192.png" />
   
-  <title>Braille Vision AI - Smartphone Assistive Perception</title>
+  <title>Braille Vision - Assistive Perception App</title>
 
   <!-- PWA Service Worker -->
   <script>
@@ -28,21 +28,19 @@
 
   <style>
     :root {
-      --bg: #0b1120;
-      --card-bg: #131d33;
-      --card-border: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent-cyan: #38bdf8;
-      --accent-green: #22c55e;
-      --accent-btn: #2563eb;
-      --accent-btn-hover: #1d4ed8;
-      --dot-inactive: #1e293b;
-      --dot-inactive-text: #64748b;
-      --dot-active: #38bdf8;
-      --dot-active-text: #0f172a;
-      --pod-bg: #0f172a;
-      --success: #22c55e;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-black: #0f172a;
+      --accent-hover: #1e293b;
+      --dot-inactive: #e2e8f0;
+      --dot-inactive-text: #94a3b8;
+      --dot-active: #0f172a;
+      --dot-active-text: #ffffff;
+      --pod-bg: #f1f5f9;
+      --success: #16a34a;
       --warning: #f59e0b;
       --danger: #ef4444;
     }
@@ -78,11 +76,11 @@
       display: none;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(135deg, #1e3a8a, #0284c7);
+      background: #0f172a;
       border-radius: 14px;
       padding: 10px 14px;
       color: #ffffff;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
     }
 
     .install-banner p {
@@ -119,14 +117,14 @@
       width: 38px;
       height: 38px;
       border-radius: 10px;
-      border: 1px solid #334155;
+      border: 1px solid var(--card-border);
     }
 
     .brand-titles h1 {
       font-size: 1.25rem;
       font-weight: 800;
       letter-spacing: -0.3px;
-      color: #ffffff;
+      color: var(--text-main);
     }
 
     .brand-titles p {
@@ -150,8 +148,10 @@
       font-weight: 600;
       padding: 3px 8px;
       border-radius: 12px;
-      background: #1e293b;
-      color: #cbd5e1;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .status-dot {
@@ -171,7 +171,7 @@
       border: 1px solid var(--card-border);
       border-radius: 20px;
       padding: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -194,12 +194,12 @@
       width: 100%;
       border-radius: 16px;
       overflow: hidden;
-      background: #020617;
+      background: #0f172a;
       aspect-ratio: 4 / 3;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #1e293b;
+      border: 1px solid var(--card-border);
     }
 
     #cameraVideo {
@@ -221,16 +221,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #64748b;
+      color: #94a3b8;
       gap: 8px;
       padding: 24px;
       text-align: center;
     }
 
     .viewport-placeholder svg {
-      width: 48px;
-      height: 48px;
-      stroke: #475569;
+      width: 44px;
+      height: 44px;
+      stroke: #64748b;
     }
 
     .viewport-placeholder p {
@@ -241,7 +241,7 @@
     .loading-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(11, 17, 32, 0.82);
+      background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(4px);
       display: none;
       flex-direction: column;
@@ -253,10 +253,10 @@
     }
 
     .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(56, 189, 248, 0.2);
-      border-top-color: var(--accent-cyan);
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #ffffff;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -265,7 +265,7 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Action Buttons */
+    /* Action Buttons (Minimalist Solid Black Style) */
     .action-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -277,21 +277,21 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      background: linear-gradient(135deg, #0284c7, #2563eb);
+      background: var(--accent-black);
       color: #ffffff;
       border: none;
       border-radius: 14px;
-      padding: 16px 18px;
-      font-size: 1.05rem;
+      padding: 15px 18px;
+      font-size: 1rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-      transition: transform 0.1s, opacity 0.2s;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+      transition: transform 0.1s, background 0.2s;
     }
 
     .btn-camera:active {
       transform: scale(0.98);
-      opacity: 0.9;
+      background: var(--accent-hover);
     }
 
     .btn-row {
@@ -305,9 +305,9 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      background: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
+      background: var(--pod-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 11px 12px;
       font-size: 0.82rem;
@@ -317,15 +317,16 @@
     }
 
     .btn-secondary:active {
-      background: #334155;
+      background: #e2e8f0;
     }
 
-    /* Assistive Scene Description Banner */
+    /* Assistive Scene Description Banner (Clean White Card) */
     .caption-card {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      border: 1px solid #334155;
-      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
       padding: 16px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -341,18 +342,18 @@
       font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.8px;
-      color: var(--accent-cyan);
+      color: var(--text-muted);
       text-transform: uppercase;
     }
 
     .caption-tts-btn {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: var(--pod-bg);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 4px 10px;
-      color: var(--accent-cyan);
+      color: var(--text-main);
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -360,7 +361,7 @@
     }
 
     .caption-tts-btn:active {
-      background: rgba(56, 189, 248, 0.3);
+      background: #e2e8f0;
     }
 
     .caption-text {
@@ -368,7 +369,7 @@
       font-weight: 800;
       letter-spacing: -0.4px;
       line-height: 1.25;
-      color: #38bdf8;
+      color: var(--text-main);
       min-height: 38px;
       display: flex;
       align-items: center;
@@ -383,13 +384,14 @@
     .chip {
       font-size: 0.72rem;
       font-weight: 600;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--pod-bg);
+      border: 1px solid var(--card-border);
       padding: 3px 9px;
       border-radius: 6px;
-      color: #cbd5e1;
+      color: var(--text-main);
     }
 
-    /* Braille Display Cell (Grade 1) */
+    /* Single-Cell Braille Display Cell (Grade 1 - Exact Colors as App 1) */
     .braille-container {
       display: flex;
       flex-direction: column;
@@ -403,10 +405,10 @@
       grid-template-columns: repeat(2, 54px);
       grid-template-rows: repeat(3, 54px);
       gap: 16px 26px;
-      background: #0f172a;
+      background: var(--pod-bg);
       padding: 22px 30px;
       border-radius: 24px;
-      border: 1px solid #1e293b;
+      border: 1px solid var(--card-border);
     }
 
     .dot {
@@ -419,15 +421,16 @@
       align-items: center;
       justify-content: center;
       font-size: 0.9rem;
-      font-weight: 800;
+      font-weight: 700;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .dot.active {
       background: var(--dot-active);
       color: var(--dot-active-text);
-      transform: scale(1.1);
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
     }
 
     /* Cadence & Letter Info */
@@ -441,7 +444,7 @@
     .playback-bar {
       width: 100%;
       height: 6px;
-      background: #1e293b;
+      background: var(--pod-bg);
       border-radius: 3px;
       overflow: hidden;
     }
@@ -449,7 +452,7 @@
     .playback-fill {
       height: 100%;
       width: 0%;
-      background: var(--accent-cyan);
+      background: var(--accent-black);
       transition: width 0.1s linear;
     }
 
@@ -465,13 +468,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--accent-cyan);
-      color: #0f172a;
-      font-weight: 800;
-      font-size: 1rem;
-      border-radius: 7px;
+      width: 26px;
+      height: 26px;
+      background: var(--accent-black);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: 6px;
     }
 
     /* Transmit & Hardware Trigger */
@@ -488,7 +491,7 @@
       gap: 8px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #e2e8f0;
+      color: var(--text-main);
       cursor: pointer;
     }
 
@@ -496,7 +499,7 @@
       position: relative;
       width: 38px;
       height: 22px;
-      background: #334155;
+      background: #cbd5e1;
       border-radius: 11px;
       transition: background 0.2s;
     }
@@ -515,20 +518,19 @@
     }
 
     input[type="checkbox"]:checked + .toggle-switch {
-      background: var(--accent-cyan);
+      background: var(--accent-black);
     }
 
     input[type="checkbox"]:checked + .toggle-switch::after {
       transform: translateX(16px);
-      background: #0f172a;
     }
 
     .btn-send {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: var(--accent-black);
       color: #ffffff;
       border: none;
       border-radius: 12px;
-      padding: 12px 18px;
+      padding: 11px 18px;
       font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
@@ -536,12 +538,13 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
       transition: all 0.2s;
     }
 
     .btn-send:active {
       transform: scale(0.98);
+      background: var(--accent-hover);
     }
 
     /* Custom Text Input */
@@ -552,22 +555,23 @@
 
     .custom-input {
       flex: 1;
-      border: 1px solid #334155;
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 11px 14px;
       font-size: 0.86rem;
-      background: #0f172a;
-      color: #ffffff;
+      background: var(--pod-bg);
+      color: var(--text-main);
       outline: none;
     }
 
     .custom-input:focus {
-      border-color: var(--accent-cyan);
+      border-color: var(--accent-black);
+      background: #ffffff;
     }
 
     /* Diagnostic Console */
     .console-box {
-      background: #020617;
+      background: #0f172a;
       color: #94a3b8;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.72rem;
@@ -578,7 +582,6 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      border: 1px solid #1e293b;
     }
 
     .console-entry { line-height: 1.35; }
@@ -593,7 +596,7 @@
 
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
-      <p>📲 Install Braille Vision to Home Screen</p>
+      <p>ðŸ“² Install Braille Vision to Home Screen</p>
       <button class="btn-install" onclick="installApp()">Install App</button>
     </div>
 
@@ -603,7 +606,7 @@
         <img src="icon-192.png" alt="Braille Vision Logo" />
         <div class="brand-titles">
           <h1>Braille Vision</h1>
-          <p>Camera-to-Tactile Perception System</p>
+          <p>Camera-to-Tactile Perception</p>
         </div>
       </div>
 
@@ -641,34 +644,34 @@
 
         <div class="loading-overlay" id="loadingOverlay">
           <div class="spinner"></div>
-          <span id="loadingText" style="font-size: 0.85rem; font-weight: 600;">Analyzing scene with Deep Learning...</span>
+          <span id="loadingText" style="font-size: 0.85rem; font-weight: 600;">Analyzing scene...</span>
         </div>
       </div>
 
-      <!-- Main Action Buttons -->
+      <!-- Main Action Buttons (Clean Black Minimalist) -->
       <div class="action-grid">
         <button class="btn-camera" id="btnMainScan" onclick="triggerNativeCamera()">
-          <span style="font-size: 1.3rem;">📸</span>
-          <span>Scan with Phone Camera</span>
+          <span style="font-size: 1.25rem;">ðŸ“¸</span>
+          <span>Take Photo with Camera</span>
         </button>
 
         <div class="btn-row">
           <button class="btn-secondary" id="btnLiveToggle" onclick="toggleLiveViewfinder()">
-            <span>📹</span> <span id="liveBtnText">Live Viewfinder</span>
+            <span>ðŸ“¹</span> <span id="liveBtnText">Live Viewfinder</span>
           </button>
           <button class="btn-secondary" onclick="triggerGallery()">
-            <span>🖼️</span> <span>Gallery</span>
+            <span>ðŸ–¼ï¸</span> <span>Gallery</span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Assistive Scene Caption Banner -->
+    <!-- Assistive Scene Caption Banner (Clean White Card) -->
     <div class="caption-card">
       <div class="caption-header">
         <span class="caption-tag">Assistive Perception Output</span>
         <button class="caption-tts-btn" onclick="speakCurrentCaption()">
-          <span>🔊</span> <span>Speak</span>
+          <span>ðŸ”Š</span> <span>Speak</span>
         </button>
       </div>
 
@@ -685,7 +688,7 @@
     <div class="card">
       <div class="card-title">
         <span>Single-Cell Tactile Matrix</span>
-        <span style="font-size: 0.72rem; color: var(--accent-cyan);">1.5s ON / 0.5s GAP</span>
+        <span style="font-size: 0.72rem; color: var(--text-muted);">1.5s ON / 0.5s GAP</span>
       </div>
 
       <div class="braille-container">
@@ -721,7 +724,7 @@
         </label>
 
         <button class="btn-send" onclick="sendCaptionToHardware()">
-          <span>⚡ Send to Braille</span>
+          <span>âš¡ Send to Braille</span>
         </button>
       </div>
 
@@ -1120,7 +1123,7 @@
 
         // Bounding box outline
         ctx.lineWidth = Math.max(3, Math.round(ctx.canvas.width / 250));
-        ctx.strokeStyle = "#22c55e";
+        ctx.strokeStyle = "#16a34a"; // Clean Emerald Green
         ctx.strokeRect(x, y, w, h);
 
         // Label banner
@@ -1155,7 +1158,7 @@
         chipsBox.appendChild(chip);
       }
 
-      log(`[AI] Scene: "${currentCaption}" (${elapsedMs}ms on phone)`, "success");
+      log(`[AI] Scene: "${currentCaption}" (${elapsedMs}ms)`, "success");
 
       // Haptic vibration feedback
       if (navigator.vibrate) {
@@ -1230,7 +1233,7 @@
 
         // 1. LETTER ON
         renderDots(dots);
-        charBadge.innerText = ch === ' ' ? '␣' : ch.toUpperCase();
+        charBadge.innerText = ch === ' ' ? 'â£' : ch.toUpperCase();
         playbackStatus.innerText = `Actuating '${charBadge.innerText}' (1.5s)`;
         playbackFill.style.transition = `width ${DISPLAY_DURATION}ms linear`;
         playbackFill.style.width = `${((index + 1) / chars.length) * 100}%`;
